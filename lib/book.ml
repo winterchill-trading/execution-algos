@@ -76,7 +76,7 @@ let of_bbo (b : Market_data.Bbo.t) =
   create ~bids ~asks
 ;;
 
-let levels t (side : Side.t) =
+let[@zero_alloc] levels t (side : Side.t) =
   match side with
   | Buy -> Array.length t.bid_px
   | Sell -> Array.length t.ask_px
