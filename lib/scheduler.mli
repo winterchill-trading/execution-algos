@@ -11,8 +11,9 @@
 
     - never more than the target: [filled + working <= size], where [working] is what the
       open children could still fill, whatever the fills and closes;
-    - every child is on the lot grid, at least [max lot min_size], and priced no worse
-      than [parent.limit_px];
+    - every child is on the lot grid, at least [max lot min_size] (except [Immediate],
+      whose single child is the whole parent, as a plain IOC would be), and priced no
+      worse than [parent.limit_px];
     - with a participation cap (POV, or TWAP/VWAP with [max_participation]),
       [filled + working <= rate * market volume since the start];
     - nothing is placed at or after the horizon ({!Algo.horizon}), except the final IOC
