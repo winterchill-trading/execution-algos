@@ -73,7 +73,9 @@ let execute_ioc t (child : Child.t) =
   let n = Book.levels t.book r in
   let left = ref (Size.to_units child.size) in
   let i = ref 0 in
-  while !left > 0 && !i < n && crosses child.side (Book.px t.book r !i) ~limit:child.limit_px do
+  while
+    !left > 0 && !i < n && crosses child.side (Book.px t.book r !i) ~limit:child.limit_px
+  do
     let avail = Size.to_units (Book.sz t.book r !i) - used.(!i) in
     let take = Int.min !left avail in
     if take > 0
@@ -120,9 +122,7 @@ let apply_action t (action : Child.Action.t) =
 ;;
 
 let advance t ~now_ns =
-  while
-    (not (Queue.is_empty t.pending)) && fst (Queue.peek_exn t.pending) <= now_ns
-  do
+  while (not (Queue.is_empty t.pending)) && fst (Queue.peek_exn t.pending) <= now_ns do
     let _, action = Queue.dequeue_exn t.pending in
     apply_action t action
   done
@@ -147,8 +147,8 @@ let set_book t ~now_ns book =
   List.iter t.resting ~f:(fun r ->
     let side = r.child.side in
     let px = r.child.limit_px in
-    (* the queue cannot be longer than what the book now shows at the price, if the
-       price is inside the shown range *)
+    (* the queue cannot be longer than what the book now shows at the price, if the price
+       is inside the shown range *)
     let n = Book.levels book side in
     let inside =
       n > 0
@@ -157,8 +157,7 @@ let set_book t ~now_ns book =
       | Buy -> Price.( >= ) px (Book.px book side (n - 1))
       | Sell -> Price.( <= ) px (Book.px book side (n - 1))
     in
-    if inside
-    then r.queue <- Int.min r.queue (Size.to_units (Book.size_at book side px));
+    if inside then r.queue <- Int.min r.queue (Size.to_units (Book.size_at book side px));
     (* the opposite side reached the price: those sellers traded with the queue first,
        then with us *)
     let opp = Side.flip side in
@@ -218,8 +217,7 @@ let take_events t =
 let book t = t.book
 
 let resting t =
-  List.map t.resting ~f:(fun r ->
-    r.child, Size.of_units r.left, Size.of_units r.queue)
+  List.map t.resting ~f:(fun r -> r.child, Size.of_units r.left, Size.of_units r.queue)
 ;;
 
 let in_flight t = Queue.length t.pending

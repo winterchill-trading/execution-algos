@@ -1,10 +1,10 @@
-(** Impact and slippage of a taker order, estimated by walking the levels of a
-    {!Book.t}. The same walk is the paper venue's fill model, so an estimate and a paper
-    fill of the same order on the same book agree exactly.
+(** Impact and slippage of a taker order, estimated by walking the levels of a {!Book.t}.
+    The same walk is the paper venue's fill model, so an estimate and a paper fill of the
+    same order on the same book agree exactly.
 
-    All results assume the book does not move while the order executes; the
-    {!Estimate.t} says when the shown depth ran out ([exhausted]), in which case the real
-    cost is higher than the estimate. *)
+    All results assume the book does not move while the order executes; the {!Estimate.t}
+    says when the shown depth ran out ([exhausted]), in which case the real cost is higher
+    than the estimate. *)
 
 open! Core
 module Price = Market_data.Price
@@ -25,9 +25,8 @@ val limit_from : reference:Price.t -> side:Side.t -> bps:int -> Price.t
 val walk : Book.t -> side:Side.t -> size:Size.t -> limit:Price.t -> #(Size.t * int)
 [@@zero_alloc]
 
-(** Size a taker on [side] reaches within [bps] of the mid (both sides needed; zero for
-    a one-sided or empty book). The "depth" the adaptive algorithm compares a parent
-    with. *)
+(** Size a taker on [side] reaches within [bps] of the mid (both sides needed; zero for a
+    one-sided or empty book). The "depth" the adaptive algorithm compares a parent with. *)
 val depth_within : Book.t -> side:Side.t -> bps:int -> Size.t
 [@@zero_alloc]
 

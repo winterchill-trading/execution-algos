@@ -8,8 +8,7 @@
     - [Vwap]: like [Twap], but slice [k] brings the cumulative quantity to the share of
       the window's expected volume ({!Volume_profile}) traded by the end of the slice.
     - [Pov]: IOC children keeping the parent's cumulative quantity at [participation]
-      times the market volume traded since the parent started; stops at
-      [max_duration_ms].
+      times the market volume traded since the parent started; stops at [max_duration_ms].
     - [Passive]: one post-only child at a time, pegged to the best price on the parent's
       own side (re-pegged when the touch moves), showing at most [display] of the parent
       (an iceberg below 1.0); after [timeout_ms] the rest goes out as one IOC.
@@ -87,8 +86,8 @@ type t = Stable.V1.t =
 [@@deriving bin_io, sexp, compare, equal]
 
 (** Defaults: TWAP 60 s in 6 slices, VWAP 5 min in 10, POV 10% for at most 5 min, passive
-    30 s showing everything, iceberg showing a quarter, adaptive with ratio 0.5 within
-    10 bps, 50 bps behind, 10 bps drift, 20 s timeout. *)
+    30 s showing everything, iceberg showing a quarter, adaptive with ratio 0.5 within 10
+    bps, 50 bps behind, 10 bps drift, 20 s timeout. *)
 val twap : t
 
 val vwap : t
@@ -101,9 +100,8 @@ val adaptive : t
 val name : t -> string
 
 (** Parses a name with optional parameters separated by [':'], spans as
-    {!Time_ns.Span.of_string} reads them:
-    ["immediate"], ["twap[:DURATION[:SLICES]]"], ["vwap[:DURATION[:SLICES]]"],
-    ["pov[:RATE[:MAX_DURATION]]"], ["passive[:TIMEOUT]"],
+    {!Time_ns.Span.of_string} reads them: ["immediate"], ["twap[:DURATION[:SLICES]]"],
+    ["vwap[:DURATION[:SLICES]]"], ["pov[:RATE[:MAX_DURATION]]"], ["passive[:TIMEOUT]"],
     ["iceberg[:DISPLAY[:TIMEOUT]]"], ["adaptive[:TIMEOUT]"], or a sexp of [t]. *)
 val of_string : string -> t Or_error.t
 

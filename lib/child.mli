@@ -1,7 +1,6 @@
 (** Child orders and the actions a {!Scheduler} asks its caller to send. Child ids are
-    small integers, unique within one parent and assigned in order from 0; the caller
-    maps them to venue order ids (for example client order ids derived from the
-    parent's). *)
+    small integers, unique within one parent and assigned in order from 0; the caller maps
+    them to venue order ids (for example client order ids derived from the parent's). *)
 
 open! Core
 module Price = Market_data.Price

@@ -96,7 +96,8 @@ let validate t =
       ]
     | Pov { participation; max_duration_ms } ->
       [ frac "participation" participation; pos "max_duration" max_duration_ms ]
-    | Passive { display; timeout_ms } -> [ frac "display" display; pos "timeout" timeout_ms ]
+    | Passive { display; timeout_ms } ->
+      [ frac "display" display; pos "timeout" timeout_ms ]
     | Adaptive { small_ratio; depth_bps; max_behind_bps; max_drift_bps; timeout_ms } ->
       [ Option.some_if
           (Float.is_nan small_ratio || Float.(small_ratio <= 0.))
@@ -203,8 +204,7 @@ let to_string = function
     sprintf "iceberg:%g:%s" display (span_of_ms timeout_ms)
   | (Twap _ | Vwap _ | Adaptive _) as t ->
     (match t with
-     | Adaptive a
-       when [%equal: t] (Adaptive { a with timeout_ms = 20_000 }) adaptive ->
+     | Adaptive a when [%equal: t] (Adaptive { a with timeout_ms = 20_000 }) adaptive ->
        sprintf "adaptive:%s" (span_of_ms a.timeout_ms)
      | _ -> Sexp.to_string (sexp_of_t t))
 ;;

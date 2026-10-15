@@ -117,8 +117,8 @@ let[@inline] min_child_units t =
   Int.max (lot_units t) (round_lot t (Size.to_units t.parent.min_size + lot_units t - 1))
 ;;
 
-(* The cumulative quantity a participation [rate] allows given the market volume since
-   the start, on the lot grid. *)
+(* The cumulative quantity a participation [rate] allows given the market volume since the
+   start, on the lot grid. *)
 let[@inline] allowed_units t ~rate ~traded =
   let vol = Size.to_units traded - Size.to_units t.traded_start in
   if vol <= 0 then 0 else round_lot t (Float.iround_down_exn (rate *. Float.of_int vol))
@@ -137,7 +137,9 @@ let slices (algo : Algo.t) =
   | Immediate | Pov _ | Passive _ | Adaptive _ -> 1
 ;;
 
-let[@inline] slice_time t k = t.start_ns + ((t.deadline_ns - t.start_ns) / slices t.algo * k)
+let[@inline] slice_time t k =
+  t.start_ns + ((t.deadline_ns - t.start_ns) / slices t.algo * k)
+;;
 
 (* The price a post-only child pegs to: the best price on the parent's own side, never
    past the limit. [Null] while that side is empty. *)
@@ -226,17 +228,15 @@ let needs_tick t ~now_ns ~book ~traded =
            in
            off_peg
            ||
-           match t.algo with
-           | Adaptive { max_drift_bps; _ } -> drift_bps t book >= max_drift_bps
-           | _ -> false))
+             (match t.algo with
+             | Adaptive { max_drift_bps; _ } -> drift_bps t book >= max_drift_bps
+             | _ -> false)))
 ;;
 
 (* {2 Transitions} *)
 
 let place t ~size ~limit_px ~post_only =
-  let child =
-    { Child.id = t.next_id; side = t.parent.side; size; limit_px; post_only }
-  in
+  let child = { Child.id = t.next_id; side = t.parent.side; size; limit_px; post_only } in
   ( { t with
       next_id = t.next_id + 1
     ; working = t.working @ [ { Working.child; remaining = size; cancel_sent = false } ]
@@ -300,9 +300,7 @@ let start t ~now_ns ~book ~traded =
     | Adaptive { small_ratio; depth_bps; max_behind_bps; _ } ->
       let depth = Impact.depth_within book ~side:t.parent.side ~bps:depth_bps in
       let small =
-        Float.( <= )
-          (Size.to_float t.parent.size)
-          (small_ratio *. Size.to_float depth)
+        Float.( <= ) (Size.to_float t.parent.size) (small_ratio *. Size.to_float depth)
       in
       let behind_ok =
         Float.(t.parent.equity <= 0.)
@@ -391,7 +389,10 @@ let act t ~now_ns ~book ~traded =
         let target =
           if k >= n - 1
           then Size.to_units t.parent.size
-          else round_lot t (Float.iround_down_exn (frac *. Size.to_float t.parent.size *. 1e8))
+          else
+            round_lot
+              t
+              (Float.iround_down_exn (frac *. Size.to_float t.parent.size *. 1e8))
         in
         let target =
           match participation t.algo with
@@ -426,7 +427,9 @@ let act t ~now_ns ~book ~traded =
                     ~now_ns:(slice_time t (k + 1))
                 | _ -> Float.of_int (k + 1) /. Float.of_int n
               in
-              round_lot t (Float.iround_down_exn (frac *. Size.to_float t.parent.size *. 1e8)))
+              round_lot
+                t
+                (Float.iround_down_exn (frac *. Size.to_float t.parent.size *. 1e8)))
           in
           let target = Int.min target (allowed_units t ~rate ~traded) in
           let want = Int.min free (round_lot t (target - filled - working)) in
@@ -546,7 +549,9 @@ let on_fill t (f : Fill.t) =
 
 let on_closed t id =
   settle
-    { t with working = List.filter t.working ~f:(fun (w : Working.t) -> w.child.id <> id) }
+    { t with
+      working = List.filter t.working ~f:(fun (w : Working.t) -> w.child.id <> id)
+    }
 ;;
 
 let on_cancel t =

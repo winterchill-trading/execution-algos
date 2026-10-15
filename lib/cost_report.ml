@@ -74,7 +74,9 @@ let derive t ~notional =
        else 0.)
   ; shortfall
   ; shortfall_bps =
-      (if Float.(target_notional > 0.) then shortfall /. target_notional *. 10_000. else 0.)
+      (if Float.(target_notional > 0.)
+       then shortfall /. target_notional *. 10_000.
+       else 0.)
   }
 ;;
 

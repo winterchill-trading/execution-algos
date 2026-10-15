@@ -1,5 +1,5 @@
-(** What executing one parent order cost, measured against its arrival price (the mid
-    when the parent started, or its reference price when the book had none).
+(** What executing one parent order cost, measured against its arrival price (the mid when
+    the parent started, or its reference price when the book had none).
 
     With [s = +1] for a buy and [-1] for a sell, [a] the arrival price, [p] the average
     fill price, [e] the price when the parent ended, [q] the filled size and [u] the size
@@ -7,8 +7,8 @@
 
     - arrival slippage: [s * (p - a) / a] in basis points (positive is worse);
     - implementation shortfall: [s * q * (p - a) + s * u * (e - a) + fees] in USD: the
-      execution cost plus the opportunity cost of what did not fill (the move the
-      follower missed), plus fees; also in basis points of [target * a]. *)
+      execution cost plus the opportunity cost of what did not fill (the move the follower
+      missed), plus fees; also in basis points of [target * a]. *)
 
 open! Core
 module Price = Market_data.Price

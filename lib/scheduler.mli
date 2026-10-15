@@ -9,8 +9,8 @@
 
     Invariants (property-tested in [test/test_invariants.ml]):
 
-    - never more than the target: [filled + working <= size], where [working] is what
-      the open children could still fill, whatever the fills and closes;
+    - never more than the target: [filled + working <= size], where [working] is what the
+      open children could still fill, whatever the fills and closes;
     - every child is on the lot grid, at least [max lot min_size], and priced no worse
       than [parent.limit_px];
     - with a participation cap (POV, or TWAP/VWAP with [max_participation]),
@@ -133,6 +133,6 @@ val arrival : t -> (int * Price.t) option
 (** When the horizon ends ([None] before the first tick or for [Immediate]). *)
 val deadline_ns : t -> int option
 
-(** The cost report once the parent is done; [end_px] defaults to the mid at the last
-    tick that acted (or the arrival price). *)
+(** The cost report once the parent is done; [end_px] defaults to the mid at the last tick
+    that acted (or the arrival price). *)
 val report : ?end_px:Price.t -> t -> Cost_report.t option

@@ -43,7 +43,8 @@ val of_l2_book : ?depth:int -> Market_data.L2_book.t -> t
 val of_bbo : Market_data.Bbo.t -> t
 
 (** Number of levels on [side]'s resting orders: [Buy] counts bids, [Sell] asks. *)
-val levels : t -> Side.t -> int [@@zero_alloc]
+val levels : t -> Side.t -> int
+[@@zero_alloc]
 
 (** Price and size of level [i] (0 = best) of [side]'s resting orders. *)
 val px : t -> Side.t -> int -> Price.t

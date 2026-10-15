@@ -110,8 +110,7 @@ let[@zero_alloc] touch t (side : Side.t) =
 
 let[@zero_alloc] mid t =
   match best_bid t, best_ask t with
-  | This b, This a ->
-    This (Price.of_units ((Price.to_units b + Price.to_units a) / 2))
+  | This b, This a -> This (Price.of_units ((Price.to_units b + Price.to_units a) / 2))
   | (This _ as one), Null | Null, (This _ as one) -> one
   | Null, Null -> Null
 ;;

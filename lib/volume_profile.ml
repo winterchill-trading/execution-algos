@@ -17,7 +17,9 @@ include Stable.V1
 let check_bucket bucket =
   let b = Time_ns.Span.to_int_ns bucket in
   if b <= 0 || day_ns mod b <> 0
-  then raise_s [%message "Volume_profile: bucket must divide a day" (bucket : Time_ns.Span.t)];
+  then
+    raise_s
+      [%message "Volume_profile: bucket must divide a day" (bucket : Time_ns.Span.t)];
   b
 ;;
 
@@ -51,7 +53,7 @@ let of_trades ?(bucket = default_bucket) trades =
   let volumes = Array.create ~len:n 0. in
   List.iter trades ~f:(fun (tr : Market_data.Trade.t) ->
     let ns = Time_ns.to_int_ns_since_epoch tr.exch_ts in
-    let i = (ns mod day_ns + day_ns) mod day_ns / b in
+    let i = ((ns mod day_ns) + day_ns) mod day_ns / b in
     volumes.(i) <- volumes.(i) +. Market_data.Size.to_float tr.size);
   of_volumes ~bucket volumes
 ;;
@@ -85,5 +87,9 @@ let fraction_done t ~start_ns ~stop_ns ~now_ns =
     let total = weight_between t ~start_ns ~stop_ns in
     if Float.(total <= 0.)
     then Float.of_int (now_ns - start_ns) /. Float.of_int (stop_ns - start_ns)
-    else Float.clamp_exn (weight_between t ~start_ns ~stop_ns:now_ns /. total) ~min:0. ~max:1.)
+    else
+      Float.clamp_exn
+        (weight_between t ~start_ns ~stop_ns:now_ns /. total)
+        ~min:0.
+        ~max:1.)
 ;;

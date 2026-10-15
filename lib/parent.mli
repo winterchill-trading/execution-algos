@@ -31,8 +31,8 @@ type t = Stable.V1.t =
       when the first book has no mid *)
   ; lot : Size.t (** child sizes are multiples of it; positive *)
   ; min_size : Size.t
-  (** smallest child the venue accepts (for example its minimum notional over the
-      price, rounded up to the lot); a smaller remainder is not sent *)
+  (** smallest child the venue accepts (for example its minimum notional over the price,
+      rounded up to the lot); a smaller remainder is not sent *)
   ; equity : float
   (** USD equity of the account the parent belongs to, for the adaptive algorithm's
       tracking bound; 0 when unknown (the bound is then ignored) *)

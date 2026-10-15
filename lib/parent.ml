@@ -40,7 +40,8 @@ let create
   if not (Size.is_positive size)
   then raise_s [%message "Parent.create: size must be positive" (size : Size.t)];
   if not (Size.equal (round_lot ~lot size) size)
-  then raise_s [%message "Parent.create: size not on the lot" (size : Size.t) (lot : Size.t)];
+  then
+    raise_s [%message "Parent.create: size not on the lot" (size : Size.t) (lot : Size.t)];
   if Size.is_negative min_size
   then raise_s [%message "Parent.create: negative min_size" (min_size : Size.t)];
   { side; size; limit_px; reference_px; lot; min_size; equity }

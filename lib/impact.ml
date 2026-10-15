@@ -13,7 +13,7 @@ let no_limit (side : Side.t) =
 
 let[@zero_alloc] limit_from ~reference ~(side : Side.t) ~bps =
   let r = Price.to_units reference in
-  let move = r / 10_000 * bps + (r mod 10_000 * bps / 10_000) in
+  let move = (r / 10_000 * bps) + (r mod 10_000 * bps / 10_000) in
   match side with
   | Buy -> Price.of_units (r + move)
   | Sell -> Price.of_units (Int.max 0 (r - move))
@@ -40,7 +40,8 @@ let[@zero_alloc] walk book ~side ~size ~limit =
   let mutable i = 0 in
   while left > 0 && i < n && within side (Book.px book r i) ~limit do
     let take = Int.min left (Size.to_units (Book.sz book r i)) in
-    notional <- notional + Fixed_decimal.mul_units (Price.to_units (Book.px book r i)) take;
+    notional
+    <- notional + Fixed_decimal.mul_units (Price.to_units (Book.px book r i)) take;
     left <- left - take;
     i <- i + 1
   done;
@@ -101,7 +102,9 @@ let estimate ?limit book ~side ~size =
   if Size.is_zero filled || !reached = 0
   then None
   else (
-    let avg_px = Price.of_units (Fixed_decimal.div_units notional (Size.to_units filled)) in
+    let avg_px =
+      Price.of_units (Fixed_decimal.div_units notional (Size.to_units filled))
+    in
     (* the last level actually used: walk the cumulative size again *)
     let levels =
       let rec go i acc =
