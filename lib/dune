@@ -1,0 +1,6 @@
+(library
+ (name execution_algos)
+ (public_name execution-algos)
+ (libraries core bin_prot fixed-decimal exchange-core market-data)
+ (preprocess
+  (pps ppx_jane)))

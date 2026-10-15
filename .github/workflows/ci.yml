@@ -1,0 +1,31 @@
+name: ci
+on: [push, pull_request]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: winterchill-trading/infra/.github/actions/ox-setup@main
+        with:
+          pins: |
+            fixed-decimal https://github.com/winterchill-trading/fixed-decimal.git
+            exchange-core https://github.com/winterchill-trading/exchange-core.git
+            parquet https://github.com/winterchill-trading/parquet.git
+            market-data https://github.com/winterchill-trading/market-data.git
+      - run: opam exec -- dune build
+      - run: opam exec -- dune test
+      # odoc does not declare result; listing the pins keeps the solver from dropping
+      # sibling packages
+      - run: opam install -y result odoc $(opam pin list --short)
+      - name: Build API docs (odoc warnings fail the step)
+        env:
+          ODOC_WARN_ERROR: "true"
+        run: |
+          set -o pipefail
+          opam exec -- dune build @doc --display short 2>&1 | tee doc.log
+          if grep -q "Warning" doc.log; then exit 1; fi
+  obj-magic:
+    uses: winterchill-trading/infra/.github/workflows/obj-magic.yml@main
