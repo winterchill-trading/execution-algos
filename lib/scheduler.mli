@@ -1,5 +1,5 @@
 (** The child-order scheduler: a pure state machine that works one {!Parent.t} with one
-    {!Algo.t}.
+    [Algo.t].
 
     The caller feeds it {!Event.t}s (time and book ticks, child fills, child closes, a
     cancel) and sends the {!Child.Action.t}s it returns. Nothing here reads a clock or
@@ -16,7 +16,7 @@
       worse than [parent.limit_px];
     - with a participation cap (POV, or TWAP/VWAP with [max_participation]),
       [filled + working <= rate * market volume since the start];
-    - nothing is placed at or after the horizon ({!Algo.horizon}), except the final IOC
+    - nothing is placed at or after the horizon ([Algo.horizon]), except the final IOC
       sweep of [Passive] and [Adaptive]; post-only children are cancelled at the horizon,
       and once the caller has reported their closes the parent is done.
 
@@ -86,7 +86,7 @@ end
 type t [@@deriving bin_io, sexp, compare, equal]
 
 (** A pending parent. [profile] is the VWAP volume profile (default uniform). Raises if
-    [algo] is invalid ({!Algo.validate}). *)
+    [algo] is invalid ([Algo.validate]). *)
 val create : ?profile:Volume_profile.t -> Algo.t -> Parent.t -> t
 
 (** One event. *)

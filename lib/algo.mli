@@ -99,16 +99,25 @@ val adaptive : t
 (** ["immediate"], ["twap"], ["vwap"], ["pov"], ["passive"], ["iceberg"], ["adaptive"]. *)
 val name : t -> string
 
-(** Parses a name with optional parameters separated by [':'], spans as
-    {!Time_ns.Span.of_string} reads them: ["immediate"], ["twap[:DURATION[:SLICES]]"],
-    ["vwap[:DURATION[:SLICES]]"], ["pov[:RATE[:MAX_DURATION]]"], ["passive[:TIMEOUT]"],
-    ["iceberg[:DISPLAY[:TIMEOUT]]"], ["adaptive[:TIMEOUT]"], or a sexp of [t]. *)
+(** Parses a name with optional parameters separated by colons, spans as
+    [Time_ns.Span.of_string] reads them, or a sexp of [t]:
+
+    {v
+    immediate
+    twap[:DURATION[:SLICES]]
+    vwap[:DURATION[:SLICES]]
+    pov[:RATE[:MAX_DURATION]]
+    passive[:TIMEOUT]
+    iceberg[:DISPLAY[:TIMEOUT]]
+    adaptive[:TIMEOUT]
+    v} *)
 val of_string : string -> t Or_error.t
 
 (** The short form {!of_string} reads back. *)
 val to_string : t -> string
 
-(** Positive durations and slices, rates and display in (0, 1], ratios positive. *)
+(** Positive durations and slices, rates and display above 0 and at most 1, ratios
+    positive. *)
 val validate : t -> unit Or_error.t
 
 (** When the parent must be finished, from its start; [None] for [Immediate]. *)

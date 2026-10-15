@@ -64,7 +64,7 @@ module Stable : sig
 end
 
 type t = Stable.V1.t =
-  { algo : string (** {!Algo.name} *)
+  { algo : string (** [Algo.name] *)
   ; side : Side.t
   ; target : Size.t
   ; filled : Size.t

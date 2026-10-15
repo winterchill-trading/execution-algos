@@ -30,11 +30,12 @@ val bucket : t -> Time_ns.Span.t
 (** Share of the day in bucket [i] (they sum to 1). *)
 val weights : t -> float array
 
-(** Expected share of one day's volume traded in [[start_ns, stop_ns)]: 1.0 for a full
+(** Expected share of one day's volume traded from [start_ns] (included) to [stop_ns]
+    (excluded): 1.0 for a full
     day, interpolated linearly inside a bucket. *)
 val weight_between : t -> start_ns:int -> stop_ns:int -> float
 
-(** Expected fraction of the window [[start_ns, stop_ns)] already traded at [now_ns], in
-    [0, 1]: 0 at the start, 1 at and after the stop. A window with no expected volume
+(** Expected fraction of the window from [start_ns] to [stop_ns] already traded at
+    [now_ns], between 0 and 1: 0 at the start, 1 at and after the stop. A window with no expected volume
     falls back to the elapsed time fraction. *)
 val fraction_done : t -> start_ns:int -> stop_ns:int -> now_ns:int -> float
