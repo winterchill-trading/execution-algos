@@ -1,6 +1,6 @@
 (** A top-of-book snapshot: the best levels of each side as flat arrays of prices and
     sizes, best first. It is a value (the scheduler stores the arrival book and journals
-    ticks), cheap to build from {!Market_data.L2_book} and read without allocating.
+    ticks), cheap to build from [Market_data.L2_book] and read without allocating.
 
     Bids are in descending price order, asks ascending; sizes are positive. {!create}
     checks both. *)
