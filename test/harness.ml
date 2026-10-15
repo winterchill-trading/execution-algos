@@ -34,7 +34,10 @@ end
 let steps ?levels ?size ?(every_ms = 1000) ?(volume = sz 1.) ~n mids =
   let mids = Array.of_list mids in
   let traded = ref Size.zero in
-  List.init n ~f:(fun i ->
+  (* Base's [List.init] calls [f] from the last index down; the running volume needs
+     ascending order *)
+  List.range 0 n
+  |> List.map ~f:(fun i ->
     let mid = mids.(Int.min i (Array.length mids - 1)) in
     let book = book ?levels ?size (px mid) in
     let aggressor : Side.t = if i % 2 = 0 then Sell else Buy in
@@ -50,63 +53,80 @@ let steps ?levels ?size ?(every_ms = 1000) ?(volume = sz 1.) ~n mids =
     { Step.now_ns = i * every_ms * 1_000_000; book; traded = !traded; trades })
 ;;
 
+module Entry = struct
+  type t =
+    { now_ns : int
+    ; event : Scheduler.Event.t
+    ; actions : Child.Action.t list
+    }
+end
+
 let run ?(paper = Paper.create ()) sched steps =
   let journal = Queue.create () in
-  let apply sched event =
+  let apply ~now_ns sched event =
     let sched, actions = Scheduler.apply sched event in
-    Queue.enqueue journal (event, actions);
+    Queue.enqueue journal { Entry.now_ns; event; actions };
     sched, actions
   in
-  let feed sched =
+  let feed ~now_ns sched =
     List.fold (Paper.take_events paper) ~init:sched ~f:(fun sched e ->
       let event : Scheduler.Event.t =
         match e with
         | Fill f -> Fill f
         | Closed id -> Closed id
       in
-      fst (apply sched event))
+      fst (apply ~now_ns sched event))
   in
   let sched =
     List.fold steps ~init:sched ~f:(fun sched (s : Step.t) ->
-      Paper.set_book paper ~now_ns:s.now_ns s.book;
+      let now_ns = s.now_ns in
+      Paper.set_book paper ~now_ns s.book;
       List.iter s.trades ~f:(fun (price, size, aggressor) ->
-        Paper.trade paper ~now_ns:s.now_ns ~price ~size ~aggressor);
-      let sched = feed sched in
+        Paper.trade paper ~now_ns ~price ~size ~aggressor);
+      let sched = feed ~now_ns sched in
       let sched, actions =
-        apply sched (Tick { now_ns = s.now_ns; book = s.book; traded = s.traded })
+        apply ~now_ns sched (Tick { now_ns; book = s.book; traded = s.traded })
       in
-      Paper.send paper ~now_ns:s.now_ns actions;
-      feed sched)
+      Paper.send paper ~now_ns actions;
+      feed ~now_ns sched)
   in
   sched, Queue.to_list journal
 ;;
 
 let print_journal journal =
-  List.iter journal ~f:(fun ((event : Scheduler.Event.t), actions) ->
-    (match event with
-     | Tick { now_ns; _ } when not (List.is_empty actions) ->
-       printf "t=%.1fs\n" (Float.of_int now_ns /. 1e9)
-     | Fill f ->
-       printf
-         "  fill #%d %s @ %s%s\n"
-         f.child
-         (Size.to_string f.size)
-         (Price.to_string f.price)
-         (if f.maker then " maker" else "")
-     | Closed _ | Cancel | Tick _ -> ());
-    List.iter actions ~f:(fun (a : Child.Action.t) ->
-      match a with
-      | Place c ->
-        printf
-          "  place #%d %s %s @ %s%s\n"
-          c.id
-          (Sexp.to_string (Side.sexp_of_t c.side))
-          (Size.to_string c.size)
-          (Price.to_string c.limit_px)
-          (if c.post_only then " post-only" else " ioc")
-      | Cancel id -> printf "  cancel #%d\n" id))
+  let printed = ref (-1) in
+  List.iter journal ~f:(fun ({ Entry.now_ns; event; actions } : Entry.t) ->
+    let lines =
+      (match event with
+       | Fill f ->
+         [ sprintf
+             "  fill #%d %s @ %s%s"
+             f.child
+             (Size.to_string f.size)
+             (Price.to_string f.price)
+             (if f.maker then " maker" else "")
+         ]
+       | Closed _ | Cancel | Tick _ -> [])
+      @ List.map actions ~f:(fun (a : Child.Action.t) ->
+        match a with
+        | Place c ->
+          sprintf
+            "  place #%d %s %s @ %s%s"
+            c.id
+            (Sexp.to_string (Side.sexp_of_t c.side))
+            (Size.to_string c.size)
+            (Price.to_string c.limit_px)
+            (if c.post_only then " post-only" else " ioc")
+        | Cancel id -> sprintf "  cancel #%d" id)
+    in
+    if not (List.is_empty lines)
+    then (
+      if !printed <> now_ns
+      then (
+        printed := now_ns;
+        printf "t=%.1fs\n" (Float.of_int now_ns /. 1e9));
+      List.iter lines ~f:print_endline))
 ;;
-
 let print_report sched =
   match Scheduler.report sched with
   | None ->

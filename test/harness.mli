@@ -35,15 +35,19 @@ val steps
   -> float list
   -> Step.t list
 
-(** Drives the scheduler through the steps; returns the final state and every event it was
-    fed with the actions it returned (the journal). *)
-val run
-  :  ?paper:Paper.t
-  -> Scheduler.t
-  -> Step.t list
-  -> Scheduler.t * (Scheduler.Event.t * Child.Action.t list) list
+module Entry : sig
+  type t =
+    { now_ns : int (** the step's time *)
+    ; event : Scheduler.Event.t
+    ; actions : Child.Action.t list
+    }
+end
 
-(** One line per action and fill, for expect tests. *)
-val print_journal : (Scheduler.Event.t * Child.Action.t list) list -> unit
+(** Drives the scheduler through the steps; returns the final state and every event it
+    was fed with the actions it returned (the journal). *)
+val run : ?paper:Paper.t -> Scheduler.t -> Step.t list -> Scheduler.t * Entry.t list
+
+(** One line per action and fill, grouped by step time, for expect tests. *)
+val print_journal : Entry.t list -> unit
 
 val print_report : Scheduler.t -> unit
