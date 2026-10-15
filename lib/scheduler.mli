@@ -17,8 +17,9 @@
     - with a participation cap (POV, or TWAP/VWAP with [max_participation]),
       [filled + working <= rate * market volume since the start];
     - nothing is placed at or after the horizon ([Algo.horizon]), except the final IOC
-      sweep of [Passive] and [Adaptive]; post-only children are cancelled at the horizon,
-      and once the caller has reported their closes the parent is done.
+      sweep of [Passive] and [Adaptive], sent once every child is closed (the caller's
+      [Closed] for a cancelled resting child returns it); post-only children are cancelled
+      at the horizon, and once the caller has reported their closes the parent is done.
 
     A tick that has nothing to do returns the same state and no action without allocating
     ({!tick}); see the README for the measured cost per step. *)

@@ -56,7 +56,8 @@ type t =
   ; deadline_ns : int (** [max_int] for [Immediate] *)
   ; expired : bool (** a tick at or after the deadline was seen *)
   ; cancelling : bool
-  ; sweeping : bool (** the final IOC of [Passive]/[Adaptive] was sent *)
+  ; sweeping : bool (** [Passive]/[Adaptive] reached the horizon *)
+  ; sweep_sent : bool (** ... and its final IOC went out (or there was nothing to send) *)
   ; arrival_px : Price.Stable.V1.t
   ; last_px : Price.Stable.V1.t (** mid at the last tick that acted *)
   ; last_ns : int
@@ -89,6 +90,7 @@ let create ?profile algo (parent : Parent.t) =
   ; expired = false
   ; cancelling = false
   ; sweeping = false
+  ; sweep_sent = false
   ; arrival_px = parent.reference_px
   ; last_px = parent.reference_px
   ; last_ns = 0
@@ -316,13 +318,29 @@ let settle t =
     else (
       match t.algo with
       | Immediate -> if t.next_id > 0 then finish t Unfilled else t
-      | (Passive _ | Adaptive _) when t.sweeping -> finish t Unfilled
+      | (Passive _ | Adaptive _) when t.sweeping ->
+        if t.sweep_sent then finish t Unfilled else t
       | _ when t.expired -> finish t Deadline
       | _ -> t)
 ;;
 
 let ioc t ~units =
   place t ~size:(Size.of_units units) ~limit_px:t.parent.limit_px ~post_only:false
+;;
+
+(* The final IOC of [Passive] and [Adaptive]: sent once every child is closed, so the
+   resting quantity it replaces can no longer fill (never more than the target). *)
+let try_sweep t =
+  if (not t.sweeping) || t.sweep_sent || t.cancelling || not (List.is_empty t.working)
+  then t, []
+  else (
+    let free = round_lot t (free_units t) in
+    let t = { t with sweep_sent = true } in
+    if free >= min_child_units t
+    then (
+      let t, a = ioc t ~units:free in
+      t, [ a ])
+    else t, [])
 ;;
 
 let start t ~now_ns ~book ~traded =
@@ -388,13 +406,8 @@ let act t ~now_ns ~book ~traded =
     let t, cancels = cancel_resting t in
     match t.algo with
     | (Passive _ | Adaptive _) when not t.sweeping ->
-      let free = round_lot t (free_units t) in
-      let t = { t with sweeping = true; phase = Aggressive } in
-      if free >= min_child
-      then (
-        let t, a = ioc t ~units:free in
-        t, cancels @ [ a ])
-      else t, cancels
+      let t, sweep = try_sweep { t with sweeping = true; phase = Aggressive } in
+      t, cancels @ sweep
     | _ -> t, cancels)
   else (
     let free = round_lot t (free_units t) in
@@ -509,7 +522,7 @@ let tick t ~now_ns ~book ~traded =
 
 let on_fill t (f : Fill.t) =
   match List.findi t.working ~f:(fun _ (w : Working.t) -> w.child.id = f.child) with
-  | None -> t
+  | None -> t, []
   | Some (i, w) ->
     let size = Size.min f.size w.remaining in
     let remaining = Size.( - ) w.remaining size in
@@ -518,28 +531,34 @@ let on_fill t (f : Fill.t) =
       then List.filteri t.working ~f:(fun j _ -> j <> i)
       else List.mapi t.working ~f:(fun j x -> if j = i then { w with remaining } else x)
     in
-    settle
-      { t with
-        working
-      ; filled = Size.( + ) t.filled size
-      ; notional = t.notional +. (Size.to_float size *. Price.to_float f.price)
-      ; maker_filled =
-          (if f.maker then Size.( + ) t.maker_filled size else t.maker_filled)
-      ; fees =
-          (* a partial fill clamped to what was working pays its share of the fee *)
-          (t.fees
-           +.
-           if Size.equal size f.size
-           then f.fee
-           else f.fee *. Size.to_float size /. Size.to_float f.size)
-      }
+    let t, sweep =
+      try_sweep
+        { t with
+          working
+        ; filled = Size.( + ) t.filled size
+        ; notional = t.notional +. (Size.to_float size *. Price.to_float f.price)
+        ; maker_filled =
+            (if f.maker then Size.( + ) t.maker_filled size else t.maker_filled)
+        ; fees =
+            (* a partial fill clamped to what was working pays its share of the fee *)
+            (t.fees
+             +.
+             if Size.equal size f.size
+             then f.fee
+             else f.fee *. Size.to_float size /. Size.to_float f.size)
+        }
+    in
+    settle t, sweep
 ;;
 
 let on_closed t id =
-  settle
-    { t with
-      working = List.filter t.working ~f:(fun (w : Working.t) -> w.child.id <> id)
-    }
+  let t, sweep =
+    try_sweep
+      { t with
+        working = List.filter t.working ~f:(fun (w : Working.t) -> w.child.id <> id)
+      }
+  in
+  settle t, sweep
 ;;
 
 let on_cancel t =
@@ -556,8 +575,8 @@ let apply t (event : Event.t) =
   | Tick { now_ns; book; traded } ->
     let #(t, actions) = tick t ~now_ns ~book ~traded in
     t, actions
-  | Fill f -> on_fill t f, []
-  | Closed id -> on_closed t id, []
+  | Fill f -> on_fill t f
+  | Closed id -> on_closed t id
   | Cancel -> on_cancel t
 ;;
 
