@@ -43,8 +43,8 @@ module Entry : sig
     }
 end
 
-(** Drives the scheduler through the steps; returns the final state and every event it
-    was fed with the actions it returned (the journal). *)
+(** Drives the scheduler through the steps; returns the final state and every event it was
+    fed with the actions it returned (the journal). *)
 val run : ?paper:Paper.t -> Scheduler.t -> Step.t list -> Scheduler.t * Entry.t list
 
 (** One line per action and fill, grouped by step time, for expect tests. *)

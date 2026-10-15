@@ -53,7 +53,8 @@ let%expect_test "immediate: the limit stops the walk, the rest is left" =
 
 let%expect_test "twap: three slices of one over 9 s" =
   run_and_print (Twap { duration_ms = 9_000; slices = 3; max_participation = None });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 1 @ 100.1 ioc
       fill #0 1 @ 100
@@ -68,9 +69,9 @@ let%expect_test "twap: three slices of one over 9 s" =
 ;;
 
 let%expect_test "twap with a participation cap of 50%" =
-  run_and_print
-    (Twap { duration_ms = 9_000; slices = 3; max_participation = Some 0.5 });
-  [%expect {|
+  run_and_print (Twap { duration_ms = 9_000; slices = 3; max_participation = Some 0.5 });
+  [%expect
+    {|
     t=1.0s
       place #0 Buy 0.5 @ 100.1 ioc
       fill #0 0.5 @ 100.01
@@ -92,7 +93,8 @@ let%expect_test "twap with a participation cap of 50%" =
 
 let%expect_test "vwap over a uniform profile is a twap" =
   run_and_print (Vwap { duration_ms = 9_000; slices = 3; max_participation = None });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 1 @ 100.1 ioc
       fill #0 1 @ 100
@@ -108,7 +110,8 @@ let%expect_test "vwap over a uniform profile is a twap" =
 
 let%expect_test "pov: 40% of the market volume, stops at the horizon" =
   run_and_print (Pov { participation = 0.4; max_duration_ms = 6_000 });
-  [%expect {|
+  [%expect
+    {|
     t=1.0s
       place #0 Buy 0.4 @ 100.1 ioc
       fill #0 0.4 @ 100.01
@@ -130,7 +133,8 @@ let%expect_test "pov: 40% of the market volume, stops at the horizon" =
 
 let%expect_test "passive in a rising market: re-pegs, then the timeout sweeps" =
   run_and_print (Passive { display = 1.0; timeout_ms = 6_000 });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 3 @ 99.99 post-only
     t=1.0s
@@ -154,7 +158,8 @@ let%expect_test "passive in a rising market: re-pegs, then the timeout sweeps" =
 
 let%expect_test "iceberg in a rising market" =
   run_and_print ~n:20 (Passive { display = 0.34; timeout_ms = 15_000 });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 1 @ 99.99 post-only
     t=1.0s
@@ -207,7 +212,8 @@ let%expect_test "adaptive: a small parent works passively" =
        ; max_drift_bps = 10
        ; timeout_ms = 8_000
        });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 0.5 @ 99.99 post-only
     t=1.0s
@@ -233,7 +239,8 @@ let%expect_test "adaptive: a small parent works passively" =
 
 let%expect_test "adaptive: a parent large against the depth takes at once" =
   run_and_print ~parent:(parent ~size:3. ()) Algo.adaptive;
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 3 @ 100.1 ioc
       fill #0 1 @ 100
@@ -245,7 +252,8 @@ let%expect_test "adaptive: a parent large against the depth takes at once" =
 
 let%expect_test "adaptive: too far behind the leader (equity bound) takes at once" =
   run_and_print ~parent:(parent ~size:0.5 ~equity:5_000. ()) Algo.adaptive;
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 0.5 @ 100.1 ioc
       fill #0 0.5 @ 100
@@ -260,7 +268,8 @@ let%expect_test "adaptive: the mid runs away, the algo switches to taking" =
     ~steps:s
     ~parent:(parent ~size:0.5 ~limit:101. ~equity:100_000. ())
     Algo.adaptive;
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 0.5 @ 99.99 post-only
     t=1.0s
@@ -281,7 +290,8 @@ let%expect_test "cancel: a resting child is cancelled and the parent ends" =
   print_s [%sexp (actions : Child.Action.t list)];
   let sched, _ = Scheduler.apply sched (Closed 0) in
   print_report sched;
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 3 @ 99.99 post-only
     ((Cancel 0))
@@ -293,7 +303,8 @@ let%expect_test "a sell mirrors a buy" =
   run_and_print
     ~parent:(parent ~side:Sell ~limit:99.90 ())
     (Twap { duration_ms = 4_000; slices = 2; max_participation = None });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Sell 1.5 @ 99.9 ioc
       fill #0 1 @ 99.99
@@ -311,11 +322,17 @@ let%expect_test "latency: children land later" =
   let s = steps ~n:6 (rising 6) in
   let paper = Paper.create ~latency:(Time_ns.Span.of_int_ms 1500) () in
   let sched, journal =
-    run ~paper (Scheduler.create (Twap { duration_ms = 4_000; slices = 2; max_participation = None }) p) s
+    run
+      ~paper
+      (Scheduler.create
+         (Twap { duration_ms = 4_000; slices = 2; max_participation = None })
+         p)
+      s
   in
   print_journal journal;
   print_report sched;
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 1.5 @ 100.1 ioc
     t=2.0s
@@ -333,7 +350,8 @@ let%expect_test "passive in a flat market: sellers fill it behind the queue" =
   run_and_print
     ~steps:(steps ~n:12 ~volume:(sz 2.) (flat 12))
     (Passive { display = 1.0; timeout_ms = 10_000 });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 3 @ 99.99 post-only
     t=2.0s
@@ -348,7 +366,8 @@ let%expect_test "iceberg in a flat market: one clip at a time" =
   run_and_print
     ~steps:(steps ~n:16 ~volume:(sz 2.) (flat 16))
     (Passive { display = 0.34; timeout_ms = 15_000 });
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 1 @ 99.99 post-only
     t=2.0s
@@ -368,7 +387,8 @@ let%expect_test "adaptive in a flat market: a small parent fills as the maker" =
     ~steps:(steps ~n:8 ~volume:(sz 2.) (flat 8))
     ~parent:(parent ~size:0.5 ~equity:100_000. ())
     Algo.adaptive;
-  [%expect {|
+  [%expect
+    {|
     t=0.0s
       place #0 Buy 0.5 @ 99.99 post-only
     t=2.0s

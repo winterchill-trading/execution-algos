@@ -79,7 +79,8 @@ let create ?profile algo (parent : Parent.t) =
   ; profile =
       (match algo with
        | Vwap _ ->
-         Some (Option.value_or_thunk profile ~default:(fun () -> Volume_profile.uniform ()))
+         Some
+           (Option.value_or_thunk profile ~default:(fun () -> Volume_profile.uniform ()))
        | Immediate | Twap _ | Pov _ | Passive _ | Adaptive _ -> None)
   ; status = Pending
   ; phase = Aggressive
@@ -154,7 +155,11 @@ let slice_fraction t k =
     let stop = slice_time t (k + 1) in
     match t.profile with
     | Some p ->
-      Volume_profile.fraction_done p ~start_ns:t.start_ns ~stop_ns:t.deadline_ns ~now_ns:stop
+      Volume_profile.fraction_done
+        p
+        ~start_ns:t.start_ns
+        ~stop_ns:t.deadline_ns
+        ~now_ns:stop
     | None -> Float.of_int (k + 1) /. Float.of_int n)
 ;;
 
@@ -170,7 +175,8 @@ let slice_target t k ~traded =
     else
       round_lot
         t
-        (Float.iround_down_exn (slice_fraction t k *. Float.of_int (Size.to_units t.parent.size)))
+        (Float.iround_down_exn
+           (slice_fraction t k *. Float.of_int (Size.to_units t.parent.size)))
   in
   match participation t.algo with
   | None -> target

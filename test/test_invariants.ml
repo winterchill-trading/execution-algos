@@ -148,7 +148,8 @@ let check (case : Case.t) =
        let filled = Size.to_units (Scheduler.filled s) in
        let working = Size.to_units (Scheduler.working_size s) in
        if filled + working > Size.to_units p.size
-       then raise_s [%message "over target" (case : Case.t) (filled : int) (working : int)];
+       then
+         raise_s [%message "over target" (case : Case.t) (filled : int) (working : int)];
        if Option.is_none !deadline then deadline := Scheduler.deadline_ns s;
        (match e.event, rate with
         | Tick { traded; _ }, Some rate ->
@@ -158,7 +159,8 @@ let check (case : Case.t) =
           if Float.( > ) (Float.of_int (filled + working)) (allowed +. 1.)
           then
             raise_s
-              [%message "participation exceeded" (case : Case.t) (filled : int) (allowed : float)]
+              [%message
+                "participation exceeded" (case : Case.t) (filled : int) (allowed : float)]
         | _ -> ());
        List.iter actions ~f:(function
          | Cancel _ -> ()
@@ -175,8 +177,10 @@ let check (case : Case.t) =
            (match !deadline with
             | Some d when e.now_ns >= d ->
               (match case.algo with
-               | Passive _ | Adaptive _ when not c.post_only -> incr late_places
-               | _ -> raise_s [%message "placed after the horizon" (case : Case.t) (c : Child.t)])
+               | (Passive _ | Adaptive _) when not c.post_only -> incr late_places
+               | _ ->
+                 raise_s
+                   [%message "placed after the horizon" (case : Case.t) (c : Child.t)])
             | _ -> ()));
        s)
      : Scheduler.t);
@@ -222,7 +226,8 @@ let%expect_test "coverage of the generated cases" =
   Hashtbl.to_alist counts
   |> List.sort ~compare:[%compare: string * int]
   |> List.iter ~f:(fun (k, n) -> printf "%s %d\n" k n);
-  [%expect {|
+  [%expect
+    {|
     adaptive  filled 140
     adaptive  unfilled 39
     iceberg   filled 68

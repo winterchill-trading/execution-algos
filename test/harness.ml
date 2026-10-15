@@ -127,6 +127,7 @@ let print_journal journal =
         printf "t=%.1fs\n" (Float.of_int now_ns /. 1e9));
       List.iter lines ~f:print_endline))
 ;;
+
 let print_report sched =
   match Scheduler.report sched with
   | None ->
