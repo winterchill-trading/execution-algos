@@ -68,7 +68,9 @@ let case_gen : Case.t G.t =
     Option.value_map (Algo.horizon algo) ~default:0 ~f:(fun h ->
       Int.of_float (Time_ns.Span.to_ms h))
   in
-  let n = ((horizon_ms + latency_ms) / every_ms) + 4 in
+  (* the horizon, then two venue round trips: the cancel of a resting child, then the
+     final sweep it releases *)
+  let n = ((horizon_ms + (2 * latency_ms)) / every_ms) + 4 in
   let%bind moves = G.list_with_length n (Int.gen_incl (-3) 3) in
   let%bind volumes = G.list_with_length n (Int.gen_incl 0 30) in
   let%bind level_sizes = G.list_with_length n (Int.gen_incl 1 20) in
@@ -228,19 +230,19 @@ let%expect_test "coverage of the generated cases" =
   |> List.iter ~f:(fun (k, n) -> printf "%s %d\n" k n);
   [%expect
     {|
-    adaptive  filled 140
-    adaptive  unfilled 39
-    iceberg   filled 68
-    iceberg   unfilled 89
-    immediate filled 121
-    immediate unfilled 54
-    passive   filled 5
-    passive   unfilled 3
-    pov       deadline 89
-    pov       filled 74
-    twap      deadline 59
-    twap      filled 89
-    vwap      deadline 78
-    vwap      filled 92
+    adaptive  filled 150
+    adaptive  unfilled 19
+    iceberg   filled 99
+    iceberg   unfilled 57
+    immediate filled 118
+    immediate unfilled 53
+    passive   filled 4
+    passive   unfilled 2
+    pov       deadline 72
+    pov       filled 99
+    twap      deadline 68
+    twap      filled 100
+    vwap      deadline 65
+    vwap      filled 94
     |}]
 ;;

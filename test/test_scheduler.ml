@@ -197,7 +197,7 @@ let%expect_test "iceberg in a rising market" =
       place #11 Buy 1 @ 100.1 post-only
     t=15.0s
       cancel #11
-      place #12 Buy 2 @ 100.1 ioc
+      place #12 Buy 3 @ 100.1 ioc
     iceberg unfilled: filled 0 of 3 @ 0, arrival 99.995, slippage 0.00 bps, shortfall 0.4500 USD (15.00 bps), fees 0.0000, children 13, maker 0
     |}]
 ;;

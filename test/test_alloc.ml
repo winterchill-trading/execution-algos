@@ -43,6 +43,6 @@ let%expect_test "allocation per call" =
     passive idle tick  0
     impact walk        0
     depth within       0
-    twap first tick    120
+    twap first tick    124
     |}]
 ;;

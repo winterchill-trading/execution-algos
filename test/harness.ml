@@ -68,14 +68,23 @@ let run ?(paper = Paper.create ()) sched steps =
     Queue.enqueue journal { Entry.now_ns; event; actions };
     sched, actions
   in
-  let feed ~now_ns sched =
-    List.fold (Paper.take_events paper) ~init:sched ~f:(fun sched e ->
-      let event : Scheduler.Event.t =
-        match e with
-        | Fill f -> Fill f
-        | Closed id -> Closed id
+  (* a close can release the final sweep, which may fill at once: loop until quiet *)
+  let rec feed ~now_ns sched =
+    match Paper.take_events paper with
+    | [] -> sched
+    | events ->
+      let sched =
+        List.fold events ~init:sched ~f:(fun sched e ->
+          let event : Scheduler.Event.t =
+            match e with
+            | Fill f -> Fill f
+            | Closed id -> Closed id
+          in
+          let sched, actions = apply ~now_ns sched event in
+          Paper.send paper ~now_ns actions;
+          sched)
       in
-      fst (apply ~now_ns sched event))
+      feed ~now_ns sched
   in
   let sched =
     List.fold steps ~init:sched ~f:(fun sched (s : Step.t) ->
