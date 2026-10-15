@@ -70,8 +70,8 @@ limit, equity, a random-walk market with random depth and volume, venue latency 
   worse than the parent's limit;
 - with a participation cap, `filled + working <= rate * volume since the start`;
 - nothing placed at or after the horizon but the single final IOC sweep of `Passive` and
-  `Adaptive`; every parent is done once the market has outlived its horizon and the
-  venue latency;
+  `Adaptive`, sent once the cancelled resting children are confirmed closed; every
+  parent is done once the market has outlived its horizon and two venue round trips;
 - replaying the journal of events on a fresh scheduler gives the same actions and the
   same final state; events round-trip through `bin_io`.
 
