@@ -1,0 +1,8 @@
+(library
+ (name execution_algos_test)
+ (libraries core exchange-core execution-algos market-data)
+ (inline_tests
+  (flags
+   (:standard -source-tree-root .)))
+ (preprocess
+  (pps ppx_jane)))
