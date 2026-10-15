@@ -1,5 +1,5 @@
 (** The share of a day's traded volume expected in each time-of-day bucket (UTC), for VWAP
-    scheduling. Built from recorded {!Market_data.Trade.t}s, or uniform when there is no
+    scheduling. Built from recorded [Market_data.Trade.t]s, or uniform when there is no
     history (a VWAP over a uniform profile is a TWAP).
 
     Time arguments are nanoseconds since the epoch; a window may span days. *)
