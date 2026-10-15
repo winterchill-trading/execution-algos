@@ -49,7 +49,7 @@ end
 type t =
   { algo : Algo.Stable.V1.t
   ; parent : Parent.Stable.V1.t
-  ; profile : Volume_profile.Stable.V1.t
+  ; profile : Volume_profile.Stable.V1.t option (** VWAP only *)
   ; status : Status.t
   ; phase : Phase.t
   ; start_ns : int
@@ -76,7 +76,11 @@ let create ?profile algo (parent : Parent.t) =
   ok_exn (Algo.validate algo);
   { algo
   ; parent
-  ; profile = Option.value_or_thunk profile ~default:(fun () -> Volume_profile.uniform ())
+  ; profile =
+      (match algo with
+       | Vwap _ ->
+         Some (Option.value_or_thunk profile ~default:(fun () -> Volume_profile.uniform ()))
+       | Immediate | Twap _ | Pov _ | Passive _ | Adaptive _ -> None)
   ; status = Pending
   ; phase = Aggressive
   ; start_ns = 0
@@ -139,6 +143,38 @@ let slices (algo : Algo.t) =
 
 let[@inline] slice_time t k =
   t.start_ns + ((t.deadline_ns - t.start_ns) / slices t.algo * k)
+;;
+
+(* Cumulative fraction of the parent due by the end of slice [k] (0-based). *)
+let slice_fraction t k =
+  let n = slices t.algo in
+  if k >= n - 1
+  then 1.
+  else (
+    let stop = slice_time t (k + 1) in
+    match t.profile with
+    | Some p ->
+      Volume_profile.fraction_done p ~start_ns:t.start_ns ~stop_ns:t.deadline_ns ~now_ns:stop
+    | None -> Float.of_int (k + 1) /. Float.of_int n)
+;;
+
+(* The cumulative quantity due after slice [k], on the lot grid, capped by the
+   participation rate when there is one. *)
+let slice_target t k ~traded =
+  let n = slices t.algo in
+  let target =
+    if k < 0
+    then 0
+    else if k >= n - 1
+    then Size.to_units t.parent.size
+    else
+      round_lot
+        t
+        (Float.iround_down_exn (slice_fraction t k *. Float.of_int (Size.to_units t.parent.size)))
+  in
+  match participation t.algo with
+  | None -> target
+  | Some rate -> Int.min target (allowed_units t ~rate ~traded)
 ;;
 
 (* The price a post-only child pegs to: the best price on the parent's own side, never
@@ -367,77 +403,23 @@ let act t ~now_ns ~book ~traded =
       else t, []
     | Twap _ | Vwap _ ->
       let n = slices t.algo in
-      if now_ns >= slice_time t t.next_slice
-      then (
-        (* the slice containing [now]; slices missed by a late tick are merged *)
-        let duration = t.deadline_ns - t.start_ns in
-        let k = Int.min (n - 1) ((now_ns - t.start_ns) / Int.max 1 (duration / n)) in
-        let frac =
-          if k >= n - 1
-          then 1.
-          else (
-            match t.algo with
-            | Vwap _ ->
-              Volume_profile.fraction_done
-                t.profile
-                ~start_ns:t.start_ns
-                ~stop_ns:t.deadline_ns
-                ~now_ns:(slice_time t (k + 1))
-            | _ -> Float.of_int (k + 1) /. Float.of_int n)
-        in
-        let t = { t with next_slice = k + 1 } in
-        let target =
-          if k >= n - 1
-          then Size.to_units t.parent.size
-          else
-            round_lot
-              t
-              (Float.iround_down_exn (frac *. Size.to_float t.parent.size *. 1e8))
-        in
-        let target =
-          match participation t.algo with
-          | None -> target
-          | Some rate -> Int.min target (allowed_units t ~rate ~traded)
-        in
-        let want = Int.min free (round_lot t (target - filled - working)) in
-        if want >= min_child && touch_within_limit t book
+      let t =
+        if now_ns >= slice_time t t.next_slice
         then (
-          let t, a = ioc t ~units:want in
-          t, [ a ])
-        else t, [])
-      else (
-        (* between slices: a participation cap may have held a slice back *)
-        match participation t.algo with
-        | None -> t, []
-        | Some rate ->
-          let k = t.next_slice - 1 in
-          let target =
-            if k < 0
-            then 0
-            else if k >= n - 1
-            then Size.to_units t.parent.size
-            else (
-              let frac =
-                match t.algo with
-                | Vwap _ ->
-                  Volume_profile.fraction_done
-                    t.profile
-                    ~start_ns:t.start_ns
-                    ~stop_ns:t.deadline_ns
-                    ~now_ns:(slice_time t (k + 1))
-                | _ -> Float.of_int (k + 1) /. Float.of_int n
-              in
-              round_lot
-                t
-                (Float.iround_down_exn (frac *. Size.to_float t.parent.size *. 1e8)))
-          in
-          let target = Int.min target (allowed_units t ~rate ~traded) in
-          let want = Int.min free (round_lot t (target - filled - working)) in
-          if want >= min_child && touch_within_limit t book
-          then (
-            let t, a = ioc t ~units:want in
-            t, [ a ])
-          else t, [])
+          (* the slice containing [now]; slices missed by a late tick are merged *)
+          let duration = t.deadline_ns - t.start_ns in
+          let k = Int.min (n - 1) ((now_ns - t.start_ns) / Int.max 1 (duration / n)) in
+          { t with next_slice = k + 1 })
+        else t
+      in
+      (* between slices only a participation cap can have held quantity back *)
+      let target = slice_target t (t.next_slice - 1) ~traded in
+      let want = Int.min free (round_lot t (target - filled - working)) in
+      if want >= min_child && touch_within_limit t book
+      then (
+        let t, a = ioc t ~units:want in
+        t, [ a ])
+      else t, []
     | Pov { participation; _ } ->
       let allowed = allowed_units t ~rate:participation ~traded in
       let want = Int.min free (round_lot t (allowed - filled - working)) in
