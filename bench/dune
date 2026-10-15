@@ -1,0 +1,11 @@
+(executable
+ (name main)
+ (libraries
+  core
+  core_unix.command_unix
+  core_bench
+  execution-algos
+  execution_algos_test
+  market-data)
+ (preprocess
+  (pps ppx_jane)))
