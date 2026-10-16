@@ -105,16 +105,18 @@ land `latency` after they are sent. Fees default to 4.5 bp taker and 1.5 bp make
 
 ## Performance
 
-`bench/main.exe` (core_bench, dev profile, Apple M-series, `-quota 2`):
+`bench/main.exe` (core_bench, Apple M-series, `-quota 1`), in the dev profile, the
+release profile and release with `OCAMLPARAM='_,O3=1'`:
 
-| Case | Time | Minor words |
-| --- | ---: | ---: |
-| idle tick, TWAP between slices | 9 ns | 0 |
-| idle tick, passive child at the peg | 17 ns | 0 |
-| tick placing a TWAP child | 71 ns | 123 |
-| `Impact.walk`, 10 levels | 63 ns | 0 |
-| `Impact.estimate` | 157 ns | 29 |
-| a whole TWAP parent through the paper venue, 12 steps | 1.6 us | 1,410 |
+| Case | Dev | Release | O3 | Minor words (dev) |
+| --- | ---: | ---: | ---: | ---: |
+| idle tick, TWAP between slices | 8.7 ns | 8.2 ns | 6.7 ns | 0 |
+| idle tick, passive child at the peg | 16.6 ns | 16.4 ns | 10.0 ns | 0 |
+| tick placing a TWAP child | 76 ns | 75 ns | 44 ns | 127 |
+| `Impact.walk`, 10 levels | 65 ns | 46 ns | 29 ns | 0 |
+| `Impact.estimate` | 193 ns | 140 ns | 112 ns | 29 |
+| a whole TWAP parent through the paper venue, 12 steps | 1.7 us | 1.6 us | 1.3 us | 1,297 |
+| a whole adaptive parent, 12 steps | 1.4 us | 1.2 us | 0.95 us | 1,011 |
 
 core_bench reports 3 words for the zero-allocation cases (its own overhead);
 `test/test_alloc.ml` pins 0 with `Gc.minor_words`. `Book` reads, `Impact.walk`,
